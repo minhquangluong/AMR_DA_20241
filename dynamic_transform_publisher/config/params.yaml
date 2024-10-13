@@ -1,0 +1,41 @@
+dynamic_tf:
+  ros__parameters:
+  
+    robot_length: 0.6
+    robot_width: 0.4
+    wheel_D: 0.18
+    wheel_base: 0.3
+    CPR: 90
+    tf_parameters:
+      laser:
+        translation: [0.0, 0.1, 0.1]
+        rotation: [0.0, 0.0, 0.0, 1.0]
+      left_wheel:
+        translation: [-0.5, 0.5, 0.0]
+        rotation: [0.0, 0.0, 0.0, 1.0]
+      right_wheel:
+        translation: [0.5, 0.5, 0.0]
+        rotation: [0.0, 0.0, 0.0, 1.0]
+
+robot_tf:
+  ros__parameters:
+    robot_length: 0.6
+    robot_width: 0.4
+    wheel_D: 0.18
+    wheel_base: 0.3
+    tf_parameters:
+      laser:
+        translation: [0.0, 0.1, 0.1]
+        rotation: [0.0, 0.0, 0.0, 1.0]
+      left_wheel:
+        translation: [-0.5, 0.5, 0.0]
+        rotation: [0.0, 0.0, 0.0, 1.0]
+      right_wheel:
+        translation: [0.5, 0.5, 0.0]
+        rotation: [0.0, 0.0, 0.0, 1.0]
+
+feed_back:
+  ros__parameters:
+    serial_port: '/dev/ttyACM0'
+    baud_rate: 115200
+    publish_frequency: 15.0
