@@ -46,7 +46,9 @@ class Robot_TF(Node):
         self.marker_pub = self.create_publisher(Marker, 'robot_visualization', 10)
 
         # Timer 
-        self.create_timer(0.1, self.publish_tf_and_footprint)
+        self.create_timer(0.05, self.publish_tf_and_footprint)
+      
+        self.create_timer(0.01,  self.publish_marker)
 
     def publish_tf_and_footprint(self):
         # Base_footprint -> base_link
@@ -117,25 +119,35 @@ class Robot_TF(Node):
         self.footprint_pub.publish(footprint)
 
         # Create marker for visualization
-        marker = Marker()
-        marker.header.frame_id = 'base_footprint'
-        marker.header.stamp = self.get_clock().now().to_msg()
-        marker.ns = "robot"
-        marker.id = 0
-        marker.type = Marker.CUBE
-        marker.action = Marker.ADD
-        marker.pose.position.x = 0.0
-        marker.pose.position.y = 0.0
-        marker.pose.position.z = 0.0
-        marker.scale.x = self.robot_width
-        marker.scale.y = self.robot_length
-        marker.scale.z = 0.1
-        marker.color.a = 1.0  # Alpha
-        marker.color.r = 0.0
-        marker.color.g = 1.0  # Green
-        marker.color.b = 0.0
+        
+    def publish_marker(self):
+    # Create marker for visualization
+       marker = Marker()
+       marker.header.frame_id = 'base_footprint'
+       marker.header.stamp = self.get_clock().now().to_msg()
+       marker.ns = "robot"
+       marker.id = 0
+       marker.type = Marker.CUBE
+       marker.action = Marker.ADD
+       marker.pose.position.x = 0.0
+       marker.pose.position.y = 0.0
+       marker.pose.position.z = 0.0
+       marker.scale.x = self.robot_width
+       marker.scale.y = self.robot_length
+       marker.scale.z = 0.1
+       marker.color.a = 1.0  # Alpha
+       marker.color.r = 0.0
+       marker.color.g = 1.0  # Green
+       marker.color.b = 0.0
 
-        self.marker_pub.publish(marker)
+
+       self.marker_pub.publish(marker)
+
+    
+
+
+       
+       
 
 def main():
     rclpy.init()

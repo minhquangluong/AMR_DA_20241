@@ -25,7 +25,7 @@ def generate_launch_description():
         parameters=[params_file],  
     )
     # hall
-    # Node2
+    
     feed_back_node = Node(
         package='dynamic_transform_publisher',
         executable='hall_back',  
