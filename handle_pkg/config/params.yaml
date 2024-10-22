@@ -1,0 +1,6 @@
+robot_handle:
+  ros__parameters:
+    serial_port: '/dev/ttyACM0'
+    baud_rate: 115200
+    wheel_radius: 0.18
+    wheel_base: 0.3
