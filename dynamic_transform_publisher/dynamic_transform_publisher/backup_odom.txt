@@ -4,13 +4,13 @@ from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
-from math import sin, cos, atan2
-import numpy as np
+from math import sin, cos, pi, atan2
 
 class OdomPublisher(Node):
     def __init__(self):
         super().__init__('odom_publisher')
 
+        # Publisher and Subscriber
         self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
         self.tf_broadcaster = TransformBroadcaster(self)
         self.create_subscription(Float64MultiArray, 'wheel_velocity', self.velocity_callback, 10)
@@ -21,44 +21,29 @@ class OdomPublisher(Node):
         self.theta = 0.0
 
         # Parameters
-        self.declare_parameter('wheel_base', 0.3)  
-        self.declare_parameter('wheel_radius', 0.08)  
+        self.declare_parameter('wheel_base', 0.3)  # Chiều rộng giữa hai bánh xe (m)
+        self.declare_parameter('wheel_radius', 0.08)  # Bán kính bánh xe (m)
         self.wheel_base = self.get_parameter('wheel_base').value
         self.wheel_radius = self.get_parameter('wheel_radius').value
 
-        
+        # Thời gian trước đó để tính delta thời gian
         self.last_time = self.get_clock().now()
 
-        # Buffer for smoothing velocities
-        self.left_velocity_buffer = []
-        self.right_velocity_buffer = []
-        self.velocity_buffer_size = 5
-
     def velocity_callback(self, msg):
-     
-        v_left = msg.data[0] * self.wheel_radius  
-        v_right = msg.data[1] * self.wheel_radius  
+        # Nhận vận tốc bánh trái và phải (theo rad/s)
+        v_left = msg.data[0] * self.wheel_radius  # Vận tốc tuyến tính bánh trái (m/s)
+        v_right = msg.data[1] * self.wheel_radius  # Vận tốc tuyến tính bánh phải (m/s)
 
-        # range vel
-        max_linear_speed = 0.5  # m/s
-        max_angular_speed = 1.0  # rad/s
-        v_left = max(min(v_left, max_linear_speed), -max_linear_speed)
-        v_right = max(min(v_right, max_linear_speed), -max_linear_speed)
-
-        # smooth vel
-        v_left = self.moving_average_filter(v_left, self.left_velocity_buffer)
-        v_right = self.moving_average_filter(v_right, self.right_velocity_buffer)
-
-        
+        # Tính toán vận tốc tuyến tính và vận tốc góc của robot
         v = (v_left + v_right) / 2.0
         omega = (v_right - v_left) / self.wheel_base
 
-        # delta time
+        # Tính toán delta thời gian
         current_time = self.get_clock().now()
-        dt = (current_time - self.last_time).nanoseconds / 1e9  
+        dt = (current_time - self.last_time).nanoseconds / 1e9  # Đổi từ nanosecond sang giây
         self.last_time = current_time
 
-        # update_position
+        # Cập nhật vị trí và góc quay của robot
         delta_x = v * cos(self.theta) * dt
         delta_y = v * sin(self.theta) * dt
         delta_theta = omega * dt
@@ -67,17 +52,11 @@ class OdomPublisher(Node):
         self.y += delta_y
         self.theta = self.normalize_angle(self.theta + delta_theta)
 
-       
+        # Phát dữ liệu odometry
         self.publish_odom(v, omega)
 
-        #odom -> base_link
+        # Phát tf từ odom -> base_link
         self.publish_tf()
-
-    def moving_average_filter(self, new_value, buffer):
-        buffer.append(new_value)
-        if len(buffer) > self.velocity_buffer_size:
-            buffer.pop(0)
-        return sum(buffer) / len(buffer)
 
     def publish_odom(self, linear_vel, angular_vel):
         odom_msg = Odometry()
@@ -85,7 +64,7 @@ class OdomPublisher(Node):
         odom_msg.header.frame_id = 'odom'
         odom_msg.child_frame_id = 'base_footprint'
 
-        # Pose 
+        # Pose (vị trí và góc quay)
         odom_msg.pose.pose.position.x = self.x
         odom_msg.pose.pose.position.y = self.y
         odom_msg.pose.pose.position.z = 0.0
@@ -95,7 +74,7 @@ class OdomPublisher(Node):
         odom_msg.pose.pose.orientation.z = q[2]
         odom_msg.pose.pose.orientation.w = q[3]
 
-        # Twist
+        # Twist (vận tốc)
         odom_msg.twist.twist.linear.x = linear_vel
         odom_msg.twist.twist.angular.z = angular_vel
 
