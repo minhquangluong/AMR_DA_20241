@@ -8,14 +8,14 @@ def generate_launch_description():
     # params
     params_file = os.path.join(get_package_share_directory('dynamic_transform_publisher'), 'config', 'params.yaml')
 
-    odom_node = Node(
+    # odom
+    dynamic_transform_node = Node(
         package='dynamic_transform_publisher',
-        executable='odom_back',  
-        name='robot_odom',
-        # output='screen',
-        parameters=[params_file],  
+        executable='dynamic_transform', 
+        name='dynamic_tf',
+        output='screen',
+        parameters=[params_file], 
     )
-
      # robot
     robot_transform_node = Node(
         package='dynamic_transform_publisher',
@@ -25,10 +25,17 @@ def generate_launch_description():
         parameters=[params_file],  
     )
     
-    
-    
+    # odom
+    feed_back_node = Node(
+        package='dynamic_transform_publisher',
+        executable='odom_back',  
+        name='feed_back',
+        # output='screen',
+        parameters=[params_file],  
+    )
+
     return LaunchDescription([
-        odom_node,
+        dynamic_transform_node,
         robot_transform_node,
-        
+        feed_back_node,
     ])

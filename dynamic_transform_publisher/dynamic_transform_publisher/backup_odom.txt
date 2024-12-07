@@ -1,10 +1,11 @@
 import rclpy
 from rclpy.node import Node
 from tf2_ros import TransformBroadcaster
-from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import TransformStamped, PolygonStamped, Point32
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
-from math import sin, cos, pi, atan2
+from math import sin, cos, atan2
+import numpy as np
 
 class OdomPublisher(Node):
     def __init__(self):
@@ -13,6 +14,7 @@ class OdomPublisher(Node):
         # Publisher and Subscriber
         self.odom_pub = self.create_publisher(Odometry, '/odom', 10)
         self.tf_broadcaster = TransformBroadcaster(self)
+        self.footprint_pub = self.create_publisher(PolygonStamped, '/robot_footprint', 10)
         self.create_subscription(Float64MultiArray, 'wheel_velocity', self.velocity_callback, 10)
 
         # Robot state
@@ -21,29 +23,44 @@ class OdomPublisher(Node):
         self.theta = 0.0
 
         # Parameters
-        self.declare_parameter('wheel_base', 0.3)  # Chiều rộng giữa hai bánh xe (m)
-        self.declare_parameter('wheel_radius', 0.08)  # Bán kính bánh xe (m)
+        self.declare_parameter('wheel_base', 0.3)
+        self.declare_parameter('wheel_radius', 0.08)
+        self.declare_parameter('robot_length', 0.43)
+        self.declare_parameter('robot_width', 0.48)
+
         self.wheel_base = self.get_parameter('wheel_base').value
         self.wheel_radius = self.get_parameter('wheel_radius').value
+        self.robot_length = self.get_parameter('robot_length').value
+        self.robot_width = self.get_parameter('robot_width').value
 
-        # Thời gian trước đó để tính delta thời gian
         self.last_time = self.get_clock().now()
 
+        # Buffer for smoothing velocities
+        
+        self.left_velocity_buffer = []
+        self.right_velocity_buffer = []
+        self.velocity_buffer_size = 3
+
     def velocity_callback(self, msg):
-        # Nhận vận tốc bánh trái và phải (theo rad/s)
-        v_left = msg.data[0] * self.wheel_radius  # Vận tốc tuyến tính bánh trái (m/s)
-        v_right = msg.data[1] * self.wheel_radius  # Vận tốc tuyến tính bánh phải (m/s)
+        v_left = msg.data[0] * self.wheel_radius
+        v_right = msg.data[1] * self.wheel_radius
 
-        # Tính toán vận tốc tuyến tính và vận tốc góc của robot
+        # Smooth velocity
+        v_left = self.moving_average_filter(v_left, self.left_velocity_buffer)
+        v_right = self.moving_average_filter(v_right, self.right_velocity_buffer)
+
         v = (v_left + v_right) / 2.0
-        omega = (v_right - v_left) / self.wheel_base
+        omega = (v_left - v_right) / self.wheel_base
 
-        # Tính toán delta thời gian
+        # Delta time
         current_time = self.get_clock().now()
-        dt = (current_time - self.last_time).nanoseconds / 1e9  # Đổi từ nanosecond sang giây
+        dt = (current_time - self.last_time).nanoseconds / 1e9
+        if dt <= 0:
+          self.get_logger().debug('Delta time is zero or negative, skipping odometry update.')
+          return
         self.last_time = current_time
 
-        # Cập nhật vị trí và góc quay của robot
+        # Update position
         delta_x = v * cos(self.theta) * dt
         delta_y = v * sin(self.theta) * dt
         delta_theta = omega * dt
@@ -52,11 +69,25 @@ class OdomPublisher(Node):
         self.y += delta_y
         self.theta = self.normalize_angle(self.theta + delta_theta)
 
-        # Phát dữ liệu odometry
-        self.publish_odom(v, omega)
+        # Publish odom
+        self.publish_odom(v, omega)     
 
-        # Phát tf từ odom -> base_link
-        self.publish_tf()
+        # Publish tf from odom -> base_footprint
+        # self.publish_tf()
+        self.create_timer(0.02, self.publish_tf)  # Tần số ~50 Hz
+
+
+        # Publish robot footprint
+        self.publish_footprint()
+
+    def moving_average_filter(self, new_value, buffer):
+      buffer.append(new_value)
+      if len(buffer) > self.velocity_buffer_size:
+          buffer.pop(0)
+      if len(buffer) < self.velocity_buffer_size:
+          return new_value  # Trả về giá trị gốc nếu buffer chưa đầy
+      return sum(buffer) / len(buffer)
+  
 
     def publish_odom(self, linear_vel, angular_vel):
         odom_msg = Odometry()
@@ -64,7 +95,7 @@ class OdomPublisher(Node):
         odom_msg.header.frame_id = 'odom'
         odom_msg.child_frame_id = 'base_footprint'
 
-        # Pose (vị trí và góc quay)
+    # Pose
         odom_msg.pose.pose.position.x = self.x
         odom_msg.pose.pose.position.y = self.y
         odom_msg.pose.pose.position.z = 0.0
@@ -74,11 +105,32 @@ class OdomPublisher(Node):
         odom_msg.pose.pose.orientation.z = q[2]
         odom_msg.pose.pose.orientation.w = q[3]
 
-        # Twist (vận tốc)
+    # Pose covariance
+        odom_msg.pose.covariance = [
+        0.01, 0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    0.01, 0.0,    0.0,    0.0,    0.0,
+        0.0,    0.0,    0.01, 0.0,    0.0,    0.0,
+        0.0,    0.0,    0.0,    0.01, 0.0,    0.0,
+        0.0,    0.0,    0.0,    0.0,    0.01, 0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.01
+    ]
+
+    # Twist
         odom_msg.twist.twist.linear.x = linear_vel
         odom_msg.twist.twist.angular.z = angular_vel
 
+    # Twist covariance
+        odom_msg.twist.covariance = [
+        0.01, 0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    0.01, 0.0,    0.0,    0.0,    0.0,
+        0.0,    0.0,    0.01, 0.0,    0.0,    0.0,
+        0.0,    0.0,    0.0,    0.01, 0.0,    0.0,
+        0.0,    0.0,    0.0,    0.0,    0.01, 0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.01
+    ]
+
         self.odom_pub.publish(odom_msg)
+
 
     def publish_tf(self):
         tf_msg = TransformStamped()
@@ -88,7 +140,7 @@ class OdomPublisher(Node):
 
         tf_msg.transform.translation.x = self.x
         tf_msg.transform.translation.y = self.y
-        tf_msg.transform.translation.z = 0.0
+        tf_msg.transform.translation.z = 0.01
         q = self.euler_to_quaternion(0, 0, self.theta)
         tf_msg.transform.rotation.x = q[0]
         tf_msg.transform.rotation.y = q[1]
@@ -97,25 +149,62 @@ class OdomPublisher(Node):
 
         self.tf_broadcaster.sendTransform(tf_msg)
 
+    def publish_footprint(self):
+        footprint = PolygonStamped()
+        footprint.header.stamp = self.get_clock().now().to_msg()
+        footprint.header.frame_id = 'base_footprint'
+
+        # Define the four corners of the robot footprint
+        half_length = self.robot_length / 2.0
+        half_width = self.robot_width / 2.0
+
+        footprint.polygon.points = [
+            Point32(x=half_length, y=half_width, z=0.0),
+            Point32(x=half_length, y=-half_width, z=0.0),
+            Point32(x=-half_length, y=-half_width, z=0.0),
+            Point32(x=-half_length, y=half_width, z=0.0)
+        ]
+
+        self.footprint_pub.publish(footprint)
+
     def euler_to_quaternion(self, roll, pitch, yaw):
-        qx = sin(roll / 2) * cos(pitch / 2) * cos(yaw / 2) - cos(roll / 2) * sin(pitch / 2) * sin(yaw / 2)
-        qy = cos(roll / 2) * sin(pitch / 2) * cos(yaw / 2) + sin(roll / 2) * cos(pitch / 2) * sin(yaw / 2)
-        qz = cos(roll / 2) * cos(pitch / 2) * sin(yaw / 2) - sin(roll / 2) * sin(pitch / 2) * cos(yaw / 2)
-        qw = cos(roll / 2) * cos(pitch / 2) * cos(yaw / 2) + sin(roll / 2) * sin(pitch / 2) * sin(yaw / 2)
-        return (qx, qy, qz, qw)
+        """
+        Convert Euler angles (roll, pitch, yaw) to a quaternion (x, y, z, w).
+        
+        Parameters:
+            roll  - Rotation around X-axis (rad).
+            pitch - Rotation around Y-axis (rad).
+            yaw   - Rotation around Z-axis (rad).
+        
+        Returns:
+            [qx, qy, qz, qw] - Quaternion representing orientation.
+        """
+        half_roll = roll / 2.0
+        half_pitch = pitch / 2.0
+        half_yaw = yaw / 2.0
+
+        sin_r = sin(half_roll)
+        cos_r = cos(half_roll)
+        sin_p = sin(half_pitch)
+        cos_p = cos(half_pitch)
+        sin_y = sin(half_yaw)
+        cos_y = cos(half_yaw)
+
+        qx = sin_r * cos_p * cos_y - cos_r * sin_p * sin_y
+        qy = cos_r * sin_p * cos_y + sin_r * cos_p * sin_y
+        qz = cos_r * cos_p * sin_y - sin_r * sin_p * cos_y
+        qw = cos_r * cos_p * cos_y + sin_r * sin_p * sin_y
+
+        return [qx, qy, qz, qw]
 
     def normalize_angle(self, angle):
         return atan2(sin(angle), cos(angle))
 
-def main():
-    rclpy.init()
-    odom_publisher = OdomPublisher()
-
-    try:
-        rclpy.spin(odom_publisher)
-    finally:
-        odom_publisher.destroy_node()
-        rclpy.shutdown()
+def main(args=None):
+    rclpy.init(args=args)
+    node = OdomPublisher()
+    rclpy.spin(node)
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

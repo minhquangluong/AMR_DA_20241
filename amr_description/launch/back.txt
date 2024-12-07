@@ -1,0 +1,68 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
+from launch.substitutions import LaunchConfiguration
+
+def generate_launch_description():
+    # Sử dụng thời gian mô phỏng
+    use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+    
+    # Đường dẫn đến file world
+    world_file_name = 'myworld.world'  # Thay thế bằng file world của bạn
+    world = os.path.join(get_package_share_directory('amr_description'), 'world', world_file_name)
+    
+    # Đường dẫn đến file URDF
+    urdf_file_path = os.path.join(get_package_share_directory('amr_description'), 'urdf', 'robot.urdf')
+
+    # Đọc nội dung file URDF
+    with open(urdf_file_path, 'r') as infp:
+        robot_description_content = infp.read()
+
+    pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
+
+    return LaunchDescription([
+        # Khởi động Gazebo Server với world đã chọn
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(pkg_gazebo_ros, 'launch', 'gzserver.launch.py')
+            ),
+            launch_arguments={'world': world}.items(),
+        ),
+
+        # Khởi động Gazebo Client
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(pkg_gazebo_ros, 'launch', 'gzclient.launch.py')
+            ),
+        ),
+
+        # Spawn robot trong Gazebo
+        Node(
+            package='gazebo_ros',
+            executable='spawn_entity.py',
+            arguments=['-entity', 'dd_robot', '-topic', '/robot_description'],  # Sử dụng topic
+            output='screen'
+        ),
+
+        # Node Robot State Publisher
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            parameters=[
+                {'robot_description': robot_description_content, 'use_sim_time': use_sim_time}
+            ],
+            output='screen',
+        ),
+
+        # Node Joint State Publisher (Nếu cần)
+        Node(
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            parameters=[{'use_sim_time': use_sim_time}],
+            output='screen',
+        ),
+    ])

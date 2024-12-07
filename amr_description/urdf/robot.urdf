@@ -1,0 +1,300 @@
+<?xml version="1.0" ?>
+<robot name="dd_robot">
+  <link name="base_footprint"/>
+
+  <joint name="base_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0.0 0.0 0.010" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Base Link -->
+  <link name="base_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.1"/>
+      <geometry>
+        <box size="0.6096 0.4191 0.15"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0.5 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.1"/>
+      <geometry>
+        <box size="0.6096 0.4191 0.15"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="5"/>
+      <inertia ixx="0.13" ixy="0.0" ixz="0.0" iyy="0.21" iyz="0.0" izz="0.13"/>
+    </inertial>
+  </link>
+
+  <!-- Right Wheel -->
+  <link name="right_wheel">
+    <visual>
+      <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.04318" radius="0.0762"/>
+      </geometry>
+      <material name="darkgray">
+        <color rgba=".2 .2 .2 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.04318" radius="0.0762"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.005" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+
+  <!-- Right Wheel Joint -->
+  <joint name="joint_right_wheel" type="continuous">
+    <origin rpy="0 0 0" xyz="-0.2 0.24 0"/>
+    <axis xyz="0 1 0"/>
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+  </joint>
+
+  <!-- Left Wheel -->
+  <link name="left_wheel">
+    <visual>
+      <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.04318" radius="0.0762"/>
+      </geometry>
+      <material name="darkgray">
+        <color rgba=".2 .2 .2 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="1.570795 0 0" xyz="0 0 0"/>
+      <geometry>
+        <cylinder length="0.04318" radius="0.0762"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.005" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+
+  <!-- Left Wheel Joint -->
+  <joint name="joint_left_wheel" type="continuous">
+    <origin rpy="0 0 0" xyz="-0.2 -0.24 0"/>
+    <axis xyz="0 1 0"/>
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+  </joint>
+
+  <!-- Caster Wheel -->
+  <link name="caster">
+    <visual>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+      <material name="white">
+        <color rgba="1 1 1 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.06"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="caster_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.25 0.0 -0.01"/>
+    <parent link="base_link"/>
+    <child link="caster"/>
+  </joint>
+
+  <!-- LiDAR -->
+  <link name="laser">
+    <visual>
+      <geometry>
+        <cylinder length="0.05" radius="0.05"/>
+      </geometry>
+      <material name="grass">
+        <color rgba="0.36 0.67 0.18 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="laser_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="0.2 0 0.25"/>
+    <parent link="base_link"/>
+    <child link="laser"/>
+  </joint>
+ 
+   <!-- IMU -->
+  <link name="imu">
+    <visual>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0.0 1.0 0.0 1.0"/>
+      </material>
+    </visual>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="imu"/>
+  </joint>
+
+
+  <!-- Cấu hình Plugin LiDAR -->
+  <gazebo reference="laser">
+    <sensor type="ray" name="head_hokuyo_sensor">
+      <pose>-0.032 0 0.171 0 0 0</pose>
+      <visualize>true</visualize>
+      <update_rate>30</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>6.28</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.12</min>
+          <max>5.0</max>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+
+      <plugin filename="libgazebo_ros_ray_sensor.so" name="hokuyo_plugin">
+        <ros>
+          <namespace>/dd_robot</namespace>
+          <remapping>cmd_vel:=cmd_vel</remapping>
+        </ros>
+        <topicName>/scan</topicName>
+        <frameName>laser</frameName>
+        <output_type>sensor_msgs/LaserScan</output_type>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- Gazebo Plugin Diff Drive -->
+  <gazebo>
+    <plugin filename="libgazebo_ros_diff_drive.so" name="diff_drive_controller">
+      <ros>
+        <namespace>/dd_robot</namespace>
+        <remapping>cmd_vel:=cmd_vel</remapping>
+      </ros>
+      <update_rate>30</update_rate>
+      <left_joint>joint_left_wheel</left_joint>
+      <right_joint>joint_right_wheel</right_joint>
+      <wheel_separation>0.48</wheel_separation>
+      <wheel_diameter>0.1524</wheel_diameter>
+      <max_wheel_torque>20</max_wheel_torque>
+      <max_wheel_acceleration>1.0</max_wheel_acceleration>
+      <command_topic>cmd_vel</command_topic>
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+    </plugin>
+    
+  </gazebo>
+  <gazebo>
+    <plugin name="amr_joint_state" filename="libgazebo_ros_joint_state_publisher.so">
+      <ros>
+        <!-- <namespace>/tb3</namespace> -->
+        <namespace>/dd_robot</namespace>
+        <remapping>~/out:=joint_states</remapping>
+      </ros>
+      <update_rate>30</update_rate>
+      <joint_name>joint_left_wheel</joint_name>
+      <joint_name>joint_right_wheel</joint_name>
+    </plugin>      
+  </gazebo>
+
+  <gazebo reference="imu">
+    <gravity>true</gravity>
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+      <visualize>true</visualize>
+      <imu>
+        <angular_velocity>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>2e-4</stddev>
+              <bias_mean>0.0000075</bias_mean>
+              <bias_stddev>0.0000008</bias_stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>2e-4</stddev>
+              <bias_mean>0.0000075</bias_mean>
+              <bias_stddev>0.0000008</bias_stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>2e-4</stddev>
+              <bias_mean>0.0000075</bias_mean>
+              <bias_stddev>0.0000008</bias_stddev>
+            </noise>
+          </z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+              <bias_mean>0.1</bias_mean>
+              <bias_stddev>0.001</bias_stddev>
+            </noise>
+          </x>
+          <y>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+              <bias_mean>0.1</bias_mean>
+              <bias_stddev>0.001</bias_stddev>
+            </noise>
+          </y>
+          <z>
+            <noise type="gaussian">
+              <mean>0.0</mean>
+              <stddev>1.7e-2</stddev>
+              <bias_mean>0.1</bias_mean>
+              <bias_stddev>0.001</bias_stddev>
+            </noise>
+          </z>
+        </linear_acceleration>
+      </imu>
+      <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <namespace>/dd_robot</namespace>
+          <remapping>~/out:=imu/data</remapping>
+        </ros>
+        <initial_orientation_as_reference>false</initial_orientation_as_reference>
+        <frame_name>imu</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+</robot>
