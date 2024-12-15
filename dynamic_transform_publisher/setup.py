@@ -23,9 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'dynamic_transform = dynamic_transform_publisher.dynamic:main',
             'robot_transform = dynamic_transform_publisher.robot_tf:main',
-            'hall_back = dynamic_transform_publisher.handle:main',
             'odom_back = dynamic_transform_publisher.odom:main',
              
 

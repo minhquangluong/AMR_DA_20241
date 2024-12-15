@@ -25,15 +25,8 @@ def generate_launch_description():
         executable='amcl',
         name='amcl',
         output='screen',
-        parameters=[
-            {'use_sim_time': False},
-            {'min_particles': 100},
-            {'max_particles': 500},
-            {'laser_model_type': 'likelihood_field'}
-        ],
-        remappings=[
-            ('/scan', '/scan')
-        ]
+        parameters=[PathJoinSubstitution([FindPackageShare('amr_navigation2'), 'config', 'amcl.yaml'])],
+        remappings=[('/scan', '/scan')]
     )
 
     # Configure and activate map_server

@@ -9,7 +9,7 @@ class RobotHandle(Node):
     def __init__(self):
         super().__init__('robot_handle')
         
-        # ROS 2 subscriptions and publishers
+        
         self.create_subscription(Twist, 'cmd_vel', self.vel_callback, 10)
         self.velocity_pub = self.create_publisher(Float64MultiArray, 'wheel_velocity', 10)
         
@@ -48,7 +48,7 @@ class RobotHandle(Node):
         wheel_speeds = np.matmul(np.linalg.inv(self.speed_matrix), vector_v)
         target_speed_left = wheel_speeds[0][0]
         target_speed_right = wheel_speeds[1][0]
-
+        self.get_logger().info(f"Calculated wheel speeds: left={target_speed_left}, right={target_speed_right}")
         # Send calculated velocities to Arduinos
         self.send_to_arduino(target_speed_left, target_speed_right)
 
@@ -78,8 +78,8 @@ class RobotHandle(Node):
     def send_to_arduino(self, speed_left, speed_right):
         try:
             if self.ser_left.is_open and self.ser_right.is_open:
-                command_left = f"{int(speed_left)}\n"
-                command_right = f"{int(speed_right)}\n"
+                command_left = f"{float(round(speed_left,2))}\n"
+                command_right = f"{float(round(speed_right,2))}\n"
                 
                 # Send data to left and right Arduinos
                 self.ser_left.write(command_left.encode())

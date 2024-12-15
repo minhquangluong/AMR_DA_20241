@@ -23,6 +23,7 @@ setup(
     entry_points={
         'console_scripts': [
             'robot_handle = handle_pkg.handle:main',
+            'testt_handle = handle_pkg.test_handle:main'
         ],
     },
 )

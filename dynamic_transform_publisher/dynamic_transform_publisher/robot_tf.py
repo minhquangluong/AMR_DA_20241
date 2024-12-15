@@ -18,11 +18,7 @@ class RobotTFNode(Node):
         # Load Parameters
         self.laser_translation = self.get_parameter('tf_parameters.laser.translation').value
         self.laser_rotation = self.get_parameter('tf_parameters.laser.rotation').value
-
-        # Log loaded parameters
-        self.get_logger().info(f"Laser Translation: {self.laser_translation}")
-        self.get_logger().info(f"Laser Rotation: {self.laser_rotation}")
-
+        
         # Timer
         self.create_timer(0.1, self.publish_tf)
 
