@@ -18,7 +18,7 @@ class RobotHandle(Node):
         self.declare_parameter('serial_port_right', '/dev/ttyACM1')
         self.declare_parameter('baud_rate', 115200)
         self.declare_parameter('wheel_radius', 0.08)
-        self.declare_parameter('wheel_base', 0.27)
+        self.declare_parameter('wheel_base', 0.3)
 
         # Retrieve parameters
         serial_port_left = self.get_parameter('serial_port_left').value
@@ -78,22 +78,16 @@ class RobotHandle(Node):
     def send_to_arduino(self, speed_left, speed_right):
         try:
             if self.ser_left.is_open and self.ser_right.is_open:
-                if (speed_left == float(0) and speed_right ==float(0)):
-                    command_left = 'k'
-                    command_right= 'k'
-                    self.ser_right.write(command_right.encode())
-                    self.ser_left.write(command_left.encode())
-                else:
-                    command_left = f"{float(round(speed_left,2))}\n"
-                    command_right = f"{float(round(speed_right,2))}\n"
+                
+                command_left = f"{float(round(speed_left,2))}\n"
+                command_right = f"{float(round(speed_right,2))}\n"
                 
                 
                 # Send data to left and right Arduinos
-                    self.ser_left.write(command_left.encode())
-                    self.ser_right.write(command_right.encode())
+                self.ser_left.write(command_left.encode())
+                self.ser_right.write(command_right.encode())
 
-                    self.get_logger().info(f"Sent to Arduino: Left={command_left.strip()}, Right={command_right.strip()}")
-        
+                self.get_logger().info(f"Sent to Arduino: Left={command_left.strip()}, Right={command_right.strip()}")
             else:
                 self.get_logger().error("One or both serial ports are not open.")
         except serial.SerialException as e:

@@ -32,7 +32,7 @@ class RobotTFNode(Node):
         base_to_link_tf.child_frame_id = 'base_link'
         base_to_link_tf.transform.translation.x = 0.0
         base_to_link_tf.transform.translation.y = 0.0
-        base_to_link_tf.transform.translation.z = 0.12
+        base_to_link_tf.transform.translation.z = 0.05
         base_to_link_tf.transform.rotation.x = 0.0
         base_to_link_tf.transform.rotation.y = 0.0
         base_to_link_tf.transform.rotation.z = 0.0
@@ -54,8 +54,8 @@ class RobotTFNode(Node):
         self.tf_broadcaster.sendTransform(link_to_laser_tf)
 
         # Log TF data
-        self.get_logger().debug(f"Published TF: {base_to_link_tf}")
-        self.get_logger().debug(f"Published TF: {link_to_laser_tf}")
+        self.get_logger().info(f"Published TF: {base_to_link_tf}")
+        self.get_logger().info(f"Published TF: {link_to_laser_tf}")
 
 
 def main():

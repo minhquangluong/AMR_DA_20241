@@ -1,9 +1,9 @@
 robot_odom:
   ros__parameters:
-    wheel_base: 0.3
+    wheel_base: 0.27
     wheel_radius: 0.08
-    robot_length: 0.43
-    robot_width: 0.8
+    # robot_length: 0.43
+    # robot_width: 0.8
 
     
 
@@ -13,7 +13,7 @@ robot_tf:
   
     tf_parameters:
       laser:
-        translation: [0.16, 0.0, 0.03]
+        translation: [0.21, 0.0, 0.22]
         rotation: [0.0, 0.0, 0.0, 1.0]
       
 

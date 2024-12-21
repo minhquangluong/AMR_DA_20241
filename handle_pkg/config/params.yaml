@@ -4,4 +4,4 @@ robot_handle:
     serial_port_2: '/dev/ttyACM1'
     baud_rate: 115200
     wheel_radius: 0.08
-    wheel_base: 0.3
+    wheel_base: 0.27

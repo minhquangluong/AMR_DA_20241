@@ -5,6 +5,7 @@ from geometry_msgs.msg import TransformStamped, PolygonStamped, Point32
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float64MultiArray
 from math import sin, cos, atan2
+from collections import deque
 import numpy as np
 
 
@@ -24,10 +25,10 @@ class OdomPublisher(Node):
         self.theta = 0.0
 
         # Parameters (configurable)
-        self.declare_parameter('wheel_base', 0.3)
+        self.declare_parameter('wheel_base', 0.27)
         self.declare_parameter('wheel_radius', 0.08)
-        self.declare_parameter('robot_length', 0.43)
-        self.declare_parameter('robot_width', 0.48)
+        # self.declare_parameter('robot_length', 0.43)
+        # self.declare_parameter('robot_width', 0.48)
 
         self.wheel_base = self.get_parameter('wheel_base').value
         self.wheel_radius = self.get_parameter('wheel_radius').value
@@ -38,9 +39,10 @@ class OdomPublisher(Node):
         self.last_time = self.get_clock().now()
 
         # Buffer for smoothing velocities
-        self.left_velocity_buffer = []
-        self.right_velocity_buffer = []
         self.velocity_buffer_size = 5  # Increased for smoother results
+        self.left_velocity_buffer = deque(maxlen=self.velocity_buffer_size)
+        self.right_velocity_buffer = deque(maxlen=self.velocity_buffer_size)
+        
 
         self.get_logger().info("OdomPublisher initialized successfully.")
 
@@ -103,7 +105,7 @@ class OdomPublisher(Node):
         self.publish_tf(current_time)
 
         # Publish robot footprint
-        self.publish_footprint()
+        # self.publish_footprint()
 
         # Update last time
         self.last_time = current_time
@@ -127,9 +129,20 @@ class OdomPublisher(Node):
         odom_msg.pose.pose.orientation.z = q[2]
         odom_msg.pose.pose.orientation.w = q[3]
 
+        # Pose covariance
+        odom_msg.pose.covariance = [
+        0.01, 0.0,    0.0,    0.0,    0.0,    0.0,
+        0.0,    0.01, 0.0,    0.0,    0.0,    0.0,
+        0.0,    0.0,    0.01, 0.0,    0.0,    0.0,
+        0.0,    0.0,    0.0,    0.01, 0.0,    0.0,
+        0.0,    0.0,    0.0,    0.0,    0.01, 0.0,
+        0.0,    0.0,    0.0,    0.0,    0.0,    0.01
+    ]
+
         # Twist
         odom_msg.twist.twist.linear.x = linear_velocity
         odom_msg.twist.twist.angular.z = angular_velocity
+
 
         # Publish odometry
         self.odom_pub.publish(odom_msg)
@@ -154,7 +167,7 @@ class OdomPublisher(Node):
 
         self.tf_broadcaster.sendTransform(tf_msg)
 
-    def publish_footprint(self):
+    '''def publish_footprint(self):
         """
         Publish the robot's footprint as a polygon.
         """
@@ -173,7 +186,7 @@ class OdomPublisher(Node):
             Point32(x=-half_length, y=half_width, z=0.0)
         ]
 
-        self.footprint_pub.publish(footprint)
+        self.footprint_pub.publish(footprint)'''
 
     @staticmethod
     def euler_to_quaternion(roll, pitch, yaw):
